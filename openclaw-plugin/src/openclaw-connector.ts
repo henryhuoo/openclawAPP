@@ -11,14 +11,12 @@ interface MessageCallbacks {
  * OpenClaw 连接器
  * 
  * 负责与本地 OpenClaw CLI 进行交互
- * 支持多种连接方式：
- * 1. 通过 CLI 命令调用
- * 2. 通过 API 调用（如果 OpenClaw 提供）
- * 3. 通过 Unix Socket 或 Named Pipe
+ * 使用 `openclaw agent --message` 命令发送消息
  */
 export class OpenClawConnector extends EventEmitter {
   private openclawPath: string;
   private activeProcess: ChildProcess | null = null;
+  private sessionId: string | null = null;
 
   constructor() {
     super();
@@ -30,13 +28,11 @@ export class OpenClawConnector extends EventEmitter {
    * 通过 CLI 发送消息给 OpenClaw
    */
   async sendMessage(content: string, callbacks: MessageCallbacks): Promise<void> {
-    // 方式1: 尝试通过 CLI 调用
-    // 这里假设 openclaw 有一个 chat 命令
     try {
       await this.sendViaCLI(content, callbacks);
     } catch (error) {
       // 如果 CLI 方式失败，使用模拟响应
-      console.warn('OpenClaw CLI not available, using mock response');
+      console.warn('OpenClaw CLI error, using mock response:', error);
       this.mockResponse(content, callbacks);
     }
   }
@@ -46,55 +42,60 @@ export class OpenClawConnector extends EventEmitter {
    */
   private async sendViaCLI(content: string, callbacks: MessageCallbacks): Promise<void> {
     return new Promise((resolve, reject) => {
-      // 检查 openclaw 是否存在
-      const checkProcess = spawn('which', [this.openclawPath]);
+      // 构建命令参数
+      // 使用 openclaw agent --agent main --message "内容" --local
+      const args = ['agent', '--agent', 'main', '--message', content, '--local'];
       
-      checkProcess.on('close', (code) => {
-        if (code !== 0) {
-          // openclaw 命令不存在，使用模拟
-          this.mockResponse(content, callbacks);
+      // 如果有会话ID，继续同一会话
+      if (this.sessionId) {
+        args.push('--session-id', this.sessionId);
+      }
+
+      console.log(`🔄 执行命令: ${this.openclawPath} ${args.join(' ')}`);
+
+      const proc = spawn(this.openclawPath, args, {
+        stdio: ['pipe', 'pipe', 'pipe'],
+        env: { ...process.env },
+      });
+
+      this.activeProcess = proc;
+      let hasOutput = false;
+      let stderrOutput = '';
+
+      // 处理 stdout 流式输出
+      proc.stdout.on('data', (data) => {
+        hasOutput = true;
+        const text = data.toString();
+        callbacks.onChunk(text);
+      });
+
+      // 处理 stderr
+      proc.stderr.on('data', (data) => {
+        stderrOutput += data.toString();
+        console.error('OpenClaw stderr:', data.toString());
+      });
+
+      proc.on('close', (code) => {
+        this.activeProcess = null;
+        
+        if (code === 0 && hasOutput) {
+          callbacks.onComplete();
           resolve();
-          return;
+        } else if (code === 0 && !hasOutput) {
+          // 命令成功但无输出，可能需要其他处理
+          callbacks.onError('OpenClaw 没有返回响应');
+          reject(new Error('No output from OpenClaw'));
+        } else {
+          const errorMsg = `OpenClaw 退出码: ${code}${stderrOutput ? '\n' + stderrOutput : ''}`;
+          callbacks.onError(errorMsg);
+          reject(new Error(errorMsg));
         }
+      });
 
-        // 调用 openclaw chat 命令
-        // 注意：这里的命令格式需要根据实际的 OpenClaw CLI 接口调整
-        const process = spawn(this.openclawPath, ['chat', '--stream'], {
-          stdio: ['pipe', 'pipe', 'pipe'],
-        });
-
-        this.activeProcess = process;
-
-        // 发送消息到 stdin
-        process.stdin.write(content);
-        process.stdin.end();
-
-        // 处理 stdout 流式输出
-        process.stdout.on('data', (data) => {
-          callbacks.onChunk(data.toString());
-        });
-
-        // 处理错误
-        process.stderr.on('data', (data) => {
-          console.error('OpenClaw stderr:', data.toString());
-        });
-
-        process.on('close', (code) => {
-          this.activeProcess = null;
-          if (code === 0) {
-            callbacks.onComplete();
-            resolve();
-          } else {
-            callbacks.onError(`OpenClaw process exited with code ${code}`);
-            reject(new Error(`Process exited with code ${code}`));
-          }
-        });
-
-        process.on('error', (error) => {
-          this.activeProcess = null;
-          callbacks.onError(error.message);
-          reject(error);
-        });
+      proc.on('error', (error) => {
+        this.activeProcess = null;
+        callbacks.onError(error.message);
+        reject(error);
       });
     });
   }

@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    host: true, // 监听所有地址，包括 127.0.0.1 和 ::1
   },
   base: './',
 });

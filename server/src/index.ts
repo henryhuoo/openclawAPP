@@ -1,10 +1,9 @@
 import express from 'express';
 import { createServer } from 'http';
-import { Server } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 import cors from 'cors';
 import { v4 as uuidv4 } from 'uuid';
-import { OpenClawBridge } from './openclaw-bridge';
-import type { Message, ServerToClientEvents, ClientToServerEvents } from '../../shared/types';
+import type { Message, ServerToClientEvents, ClientToServerEvents } from './types';
 
 const app = express();
 const httpServer = createServer(app);
@@ -12,7 +11,7 @@ const httpServer = createServer(app);
 // 配置 Socket.IO
 const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
   cors: {
-    origin: ['http://localhost:3000', 'http://localhost:5173'],
+    origin: '*',
     methods: ['GET', 'POST'],
   },
 });
@@ -23,17 +22,82 @@ app.use(express.json());
 // 存储会话消息
 const sessions: Map<string, Message[]> = new Map();
 
-// OpenClaw 桥接器
-const openclawBridge = new OpenClawBridge();
+// ============ OpenClaw 插件管理 ============
+let openclawPlugin: Socket | null = null;
+const pendingRequests: Map<string, {
+  socket: Socket;
+  assistantMessageId: string;
+  fullResponse: string;
+  sessionMessages: Message[];
+}> = new Map();
+
+// 插件命名空间 - 用于本地插件反向连接
+const pluginNamespace = io.of('/plugin');
+
+pluginNamespace.on('connection', (pluginSocket: any) => {
+  console.log(`🔌 OpenClaw Plugin connected: ${pluginSocket.id}`);
+  openclawPlugin = pluginSocket;
+
+  // 插件发送消息块
+  pluginSocket.on('chunk', (requestId: string, chunk: string) => {
+    const request = pendingRequests.get(requestId);
+    if (request) {
+      request.fullResponse += chunk;
+      request.socket.emit('streamChunk', request.assistantMessageId, chunk);
+    }
+  });
+
+  // 插件完成响应
+  pluginSocket.on('complete', (requestId: string) => {
+    const request = pendingRequests.get(requestId);
+    if (request) {
+      request.socket.emit('streamEnd', request.assistantMessageId);
+      
+      // 保存助手消息
+      const assistantMessage: Message = {
+        id: request.assistantMessageId,
+        role: 'assistant',
+        content: request.fullResponse,
+        timestamp: Date.now(),
+      };
+      request.sessionMessages.push(assistantMessage);
+      
+      pendingRequests.delete(requestId);
+      console.log(`✅ Request [${requestId}] completed`);
+    }
+  });
+
+  // 插件发送错误
+  pluginSocket.on('pluginError', (requestId: string, error: string) => {
+    const request = pendingRequests.get(requestId);
+    if (request) {
+      request.socket.emit('error', error);
+      request.socket.emit('streamEnd', request.assistantMessageId);
+      pendingRequests.delete(requestId);
+      console.log(`❌ Request [${requestId}] error: ${error}`);
+    }
+  });
+
+  pluginSocket.on('disconnect', () => {
+    console.log(`🔌 OpenClaw Plugin disconnected: ${pluginSocket.id}`);
+    if (openclawPlugin === pluginSocket) {
+      openclawPlugin = null;
+    }
+  });
+});
 
 // 健康检查端点
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: Date.now() });
+  res.json({ 
+    status: 'ok', 
+    timestamp: Date.now(),
+    pluginConnected: openclawPlugin !== null 
+  });
 });
 
-// Socket.IO 连接处理
+// ============ 客户端连接处理 ============
 io.on('connection', (socket) => {
-  console.log(`Client connected: ${socket.id}`);
+  console.log(`📱 Client connected: ${socket.id}`);
   
   const sessionId = socket.id;
   sessions.set(sessionId, []);
@@ -43,6 +107,13 @@ io.on('connection', (socket) => {
   // 处理发送消息
   socket.on('sendMessage', async (content, callback) => {
     try {
+      // 检查插件是否连接
+      if (!openclawPlugin) {
+        callback({ success: false, error: 'OpenClaw 插件未连接，请在本地启动插件' });
+        socket.emit('error', 'OpenClaw 插件未连接');
+        return;
+      }
+
       const userMessage: Message = {
         id: uuidv4(),
         role: 'user',
@@ -58,36 +129,26 @@ io.on('connection', (socket) => {
       // 发送给客户端确认
       socket.emit('message', userMessage);
 
-      // 创建助手消息ID
+      // 创建请求
+      const requestId = uuidv4();
       const assistantMessageId = uuidv4();
       
+      // 存储请求上下文
+      pendingRequests.set(requestId, {
+        socket,
+        assistantMessageId,
+        fullResponse: '',
+        sessionMessages,
+      });
+
       // 通知流开始
       socket.emit('streamStart', assistantMessageId);
 
-      // 调用 OpenClaw
-      let fullResponse = '';
-      
-      await openclawBridge.sendMessage(content, {
-        onChunk: (chunk) => {
-          fullResponse += chunk;
-          socket.emit('streamChunk', assistantMessageId, chunk);
-        },
-        onComplete: () => {
-          socket.emit('streamEnd', assistantMessageId);
-          
-          // 保存助手消息
-          const assistantMessage: Message = {
-            id: assistantMessageId,
-            role: 'assistant',
-            content: fullResponse,
-            timestamp: Date.now(),
-          };
-          sessionMessages.push(assistantMessage);
-          sessions.set(sessionId, sessionMessages);
-        },
-        onError: (error) => {
-          socket.emit('error', error);
-        },
+      // 发送请求到插件
+      openclawPlugin.emit('request', {
+        requestId,
+        type: 'chat',
+        content,
       });
 
       callback({ success: true, messageId: userMessage.id });
@@ -112,8 +173,7 @@ io.on('connection', (socket) => {
 
   // 断开连接
   socket.on('disconnect', () => {
-    console.log(`Client disconnected: ${socket.id}`);
-    // 可选：保留或清除会话
+    console.log(`📱 Client disconnected: ${socket.id}`);
   });
 });
 
@@ -122,6 +182,7 @@ const PORT = process.env.PORT || 3001;
 httpServer.listen(PORT, () => {
   console.log(`🚀 OpenClaw Server running on port ${PORT}`);
   console.log(`   Health check: http://localhost:${PORT}/health`);
+  console.log(`   等待 OpenClaw 插件连接到 /plugin 命名空间...`);
 });
 
 // 优雅关闭

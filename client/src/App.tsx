@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { Send, Trash2, Loader2, Wifi, WifiOff, Bot, User } from 'lucide-react';
+import { Send, Trash2, Loader2, Wifi, WifiOff, Bot, User, Server, Globe } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 interface Message {
@@ -11,14 +11,22 @@ interface Message {
   isStreaming?: boolean;
 }
 
-const SERVER_URL = 'http://localhost:3001';
+// 服务器配置
+const LOCAL_SERVER = 'http://localhost:3001';
+const REMOTE_SERVER = 'http://43.160.192.190:3001';
 
 function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
+  const [, setStreamingMessageId] = useState<string | null>(null);
+  const [serverUrl, setServerUrl] = useState(() => {
+    return localStorage.getItem('serverUrl') || LOCAL_SERVER;
+  });
+  const [isRemote, setIsRemote] = useState(() => {
+    return localStorage.getItem('serverUrl') === REMOTE_SERVER;
+  });
   
   const socketRef = useRef<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -35,14 +43,14 @@ function App() {
 
   // 初始化 Socket 连接
   useEffect(() => {
-    const socket = io(SERVER_URL, {
+    const socket = io(serverUrl, {
       transports: ['websocket', 'polling'],
     });
 
     socketRef.current = socket;
 
     socket.on('connect', () => {
-      console.log('Connected to server');
+      console.log('Connected to server:', serverUrl);
     });
 
     socket.on('connected', () => {
@@ -106,7 +114,16 @@ function App() {
     return () => {
       socket.disconnect();
     };
-  }, []);
+  }, [serverUrl]);
+
+  // 切换服务器
+  const toggleServer = useCallback(() => {
+    const newUrl = isRemote ? LOCAL_SERVER : REMOTE_SERVER;
+    setServerUrl(newUrl);
+    setIsRemote(!isRemote);
+    localStorage.setItem('serverUrl', newUrl);
+    setMessages([]);
+  }, [isRemote]);
 
   // 发送消息
   const handleSend = useCallback(() => {
@@ -116,7 +133,7 @@ function App() {
     setInput('');
     setIsLoading(true);
 
-    socketRef.current.emit('sendMessage', content, (response) => {
+    socketRef.current.emit('sendMessage', content, (response: { success: boolean; error?: string }) => {
       if (!response.success) {
         console.error('Failed to send message:', response.error);
         setIsLoading(false);
@@ -131,7 +148,7 @@ function App() {
   const handleClear = useCallback(() => {
     if (!socketRef.current) return;
     
-    socketRef.current.emit('clearHistory', (success) => {
+    socketRef.current.emit('clearHistory', (success: boolean) => {
       if (success) {
         setMessages([]);
       }
@@ -169,6 +186,24 @@ function App() {
         </div>
         
         <div className="flex items-center gap-4">
+          {/* 服务器切换 */}
+          <button
+            onClick={toggleServer}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors ${
+              isRemote
+                ? 'bg-purple-600/20 text-purple-400 hover:bg-purple-600/30'
+                : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+            }`}
+            title={isRemote ? '远程服务器 (腾讯云)' : '本地服务器'}
+          >
+            {isRemote ? (
+              <Globe className="w-4 h-4" />
+            ) : (
+              <Server className="w-4 h-4" />
+            )}
+            <span className="text-xs">{isRemote ? '远程' : '本地'}</span>
+          </button>
+
           <div className="flex items-center gap-2">
             {isConnected ? (
               <>
