@@ -1,0 +1,13 @@
+{
+  "name": "openclaw-app",
+  "version": "1.0.0",
+  "description": "OpenClaw Client Application",
+  "scripts": {
+    "install:all": "cd server && npm install && cd ../client && npm install && cd ../openclaw-plugin && npm install",
+    "dev": "concurrently \"cd openclaw-plugin && npm run dev\" \"cd server && npm run dev\" \"cd client && npm run dev\"",
+    "build": "cd server && npm run build && cd ../client && npm run build && cd ../openclaw-plugin && npm run build"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
