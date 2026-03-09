@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenClaw Web Client - 随时随地访问你的 AI Agent</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .code-block {
+            background: #1e1e1e;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+    <!-- Hero Section -->
+    <header class="gradient-bg text-white py-20">
+        <div class="container mx-auto px-6 text-center">
+            <h1 class="text-5xl font-bold mb-6">🦀 OpenClaw Web Client</h1>
+            <p class="text-xl mb-8 opacity-90">随时随地与你本地的 OpenClaw AI Agent 对话</p>
+            <div class="flex justify-center gap-4">
+                <a href="https://github.com/henryhuoo/openclawAPP" 
+                   class="bg-white text-purple-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition">
+                    查看源码
+                </a>
+                <a href="http://43.160.192.190/" 
+                   class="bg-transparent border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-purple-600 transition">
+                    在线体验
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Features Section -->
+    <section class="py-20">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-12">✨ 核心特性</h2>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="bg-white p-8 rounded-xl shadow-lg">
+                    <div class="text-4xl mb-4">🌐</div>
+                    <h3 class="text-xl font-bold mb-3">随时随地访问</h3>
+                    <p class="text-gray-600">通过云端中转，在任何设备的浏览器上访问你本地运行的 OpenClaw</p>
+                </div>
+                <div class="bg-white p-8 rounded-xl shadow-lg">
+                    <div class="text-4xl mb-4">⚡</div>
+                    <h3 class="text-xl font-bold mb-3">实时流式响应</h3>
+                    <p class="text-gray-600">支持流式输出，像 ChatGPT 一样看到 AI 逐字生成的回复</p>
+                </div>
+                <div class="bg-white p-8 rounded-xl shadow-lg">
+                    <div class="text-4xl mb-4">🔒</div>
+                    <h3 class="text-xl font-bold mb-3">安全私密</h3>
+                    <p class="text-gray-600">插件主动连接服务器，无需暴露本地端口，数据安全可控</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Architecture Section -->
+    <section class="py-20 bg-gray-100">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-12">🏗️ 系统架构</h2>
+            <div class="max-w-4xl mx-auto">
+                <div class="code-block p-6 text-green-400 font-mono text-sm overflow-x-auto">
+<pre>
+┌─────────────────────────────────────────────────────────────┐
+│                    任意设备 / 浏览器                         │
+│                  (手机、平板、电脑...)                        │
+└───────────────────────────┬─────────────────────────────────┘
+                            │ WebSocket
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      云端中转服务器                          │
+│                   (消息转发 & 静态托管)                       │
+└───────────────────────────┬─────────────────────────────────┘
+                            │ WebSocket (主动连接)
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                       你的本地电脑                           │
+│  ┌──────────────┐                 ┌──────────────────────┐  │
+│  │ Plugin 插件   │ ─── 调用 ────► │    OpenClaw CLI      │  │
+│  └──────────────┘ ◄── 输出 ────── └──────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+</pre>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Start Section -->
+    <section class="py-20">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-12">🚀 快速开始</h2>
+            <div class="max-w-3xl mx-auto space-y-6">
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-lg font-bold mb-3 flex items-center">
+                        <span class="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3">1</span>
+                        克隆项目
+                    </h3>
+                    <div class="code-block p-4 text-gray-300 font-mono text-sm">
+                        git clone https://github.com/henryhuoo/openclawAPP.git
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-lg font-bold mb-3 flex items-center">
+                        <span class="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3">2</span>
+                        安装依赖
+                    </h3>
+                    <div class="code-block p-4 text-gray-300 font-mono text-sm">
+                        npm run install:all
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-lg font-bold mb-3 flex items-center">
+                        <span class="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3">3</span>
+                        运行本地插件
+                    </h3>
+                    <div class="code-block p-4 text-gray-300 font-mono text-sm">
+                        cd openclaw-plugin && npm run dev
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-lg font-bold mb-3 flex items-center">
+                        <span class="bg-purple-600 text-white w-8 h-8 rounded-full flex items-center justify-center mr-3">4</span>
+                        访问 Web 客户端
+                    </h3>
+                    <p class="text-gray-600">打开浏览器访问部署好的客户端地址，开始对话！</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tech Stack Section -->
+    <section class="py-20 bg-gray-100">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-12">🛠️ 技术栈</h2>
+            <div class="flex flex-wrap justify-center gap-4">
+                <span class="bg-white px-6 py-3 rounded-full shadow font-semibold">React</span>
+                <span class="bg-white px-6 py-3 rounded-full shadow font-semibold">TypeScript</span>
+                <span class="bg-white px-6 py-3 rounded-full shadow font-semibold">Vite</span>
+                <span class="bg-white px-6 py-3 rounded-full shadow font-semibold">Tailwind CSS</span>
+                <span class="bg-white px-6 py-3 rounded-full shadow font-semibold">Node.js</span>
+                <span class="bg-white px-6 py-3 rounded-full shadow font-semibold">Express</span>
+                <span class="bg-white px-6 py-3 rounded-full shadow font-semibold">Socket.IO</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="gradient-bg text-white py-12">
+        <div class="container mx-auto px-6 text-center">
+            <p class="mb-4">OpenClaw Web Client - 让 AI 触手可及</p>
+            <div class="flex justify-center gap-6">
+                <a href="https://github.com/henryhuoo/openclawAPP" class="hover:underline">GitHub</a>
+                <a href="https://github.com/henryhuoo/openclawAPP/issues" class="hover:underline">问题反馈</a>
+            </div>
+            <p class="mt-8 opacity-70">MIT License © 2024</p>
+        </div>
+    </footer>
+</body>
+</html>
