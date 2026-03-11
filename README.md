@@ -114,12 +114,13 @@ pm2 save
             OpenClaw Server 已启动
 ═══════════════════════════════════════════════════════
 Port: 3009          ← 可在 server/config.json 中自定义
-Token: a1b2c3d4e5f6...
-encodingAESKey: XYZABC123456...
-Credential Version: 8f3a...
+Token: <服务器自动生成，请从控制台复制>
+encodingAESKey: <服务器自动生成，请从控制台复制>
+Credential Version: <自动计算的版本哈希>
 ```
 
-> ⚠️ **请记下 `Token` 和 `encodingAESKey`**，后面步骤需要使用。
+> ⚠️ **请从控制台输出中复制 `Token` 和 `encodingAESKey`**，后面步骤需要使用。
+> 凭证由服务器随机生成，**切勿在文档、聊天记录或代码仓库中明文记录**。
 > 
 > 凭证有效期 30 天，到期自动重新生成。使用 `--force-renew` 参数可随时强制更新。
 
@@ -130,14 +131,15 @@ Credential Version: 8f3a...
 ```json
 {
   "serverUrl": "http://你的服务器IP:<端口号>",
-  "token": "粘贴服务器输出的 Token",
-  "encodingAESKey": "粘贴服务器输出的 encodingAESKey",
+  "token": "<从服务器控制台输出复制>",
+  "encodingAESKey": "<从服务器控制台输出复制>",
   "openclawPath": "openclaw",
   "reconnectDelayMs": 3000
 }
 ```
 
 > 💡 **端口号**需与 `server/config.json` 中配置的 `port` 保持一致。
+> ⚠️ `token` 和 `encodingAESKey` 的值请直接从服务器启动日志中复制，不要手动编造。
 
 启动插件：
 
@@ -271,8 +273,8 @@ openclawAPP/
 ```json
 {
   "serverUrl": "http://你的服务器IP:<端口号>",
-  "token": "服务器生成的 Token",
-  "encodingAESKey": "服务器生成的 AES Key",
+  "token": "<从服务器控制台输出复制>",
+  "encodingAESKey": "<从服务器控制台输出复制>",
   "openclawPath": "openclaw",
   "reconnectDelayMs": 3000
 }
@@ -281,8 +283,8 @@ openclawAPP/
 | 字段 | 说明 | 默认值 |
 |------|------|--------|
 | `serverUrl` | 中转服务器地址 | — |
-| `token` | 服务器生成的认证令牌 | — |
-| `encodingAESKey` | 服务器生成的 AES 密钥 | — |
+| `token` | 服务器自动生成的认证令牌（从控制台复制） | 自动生成 |
+| `encodingAESKey` | 服务器自动生成的 AES 密钥（从控制台复制） | 自动生成 |
 | `openclawPath` | OpenClaw CLI 路径 | `"openclaw"` |
 | `reconnectDelayMs` | 断线重连间隔（毫秒） | `3000` |
 
