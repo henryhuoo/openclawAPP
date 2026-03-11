@@ -1,0 +1,5 @@
+{
+  "port": 3009,
+  "corsOrigin": "*",
+  "authChallengeTtlMs": 60000
+}

@@ -5,3 +5,7 @@ dist/
 *.log
 .DS_Store
 release/
+openclaw-plugin/config.json
+server/logs/
+openclaw-plugin/logs/
+server/credentials.json
