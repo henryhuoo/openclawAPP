@@ -36,7 +36,7 @@
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    📱 你的手机 / 任意浏览器                    │
-│                  http://你的服务器IP:3009/                    │
+│              http://你的服务器IP:<自定义端口>/                  │
 └──────────────────────────┬──────────────────────────────────┘
                            │ WebSocket + HMAC-SHA256 认证
                            ▼
@@ -113,7 +113,7 @@ pm2 save
 ═══════════════════════════════════════════════════════
             OpenClaw Server 已启动
 ═══════════════════════════════════════════════════════
-Port: 3009
+Port: 3009          ← 可在 server/config.json 中自定义
 Token: a1b2c3d4e5f6...
 encodingAESKey: XYZABC123456...
 Credential Version: 8f3a...
@@ -129,13 +129,15 @@ Credential Version: 8f3a...
 
 ```json
 {
-  "serverUrl": "http://你的服务器IP:3009",
+  "serverUrl": "http://你的服务器IP:<端口号>",
   "token": "粘贴服务器输出的 Token",
   "encodingAESKey": "粘贴服务器输出的 encodingAESKey",
   "openclawPath": "openclaw",
   "reconnectDelayMs": 3000
 }
 ```
+
+> 💡 **端口号**需与 `server/config.json` 中配置的 `port` 保持一致。
 
 启动插件：
 
@@ -153,8 +155,10 @@ npm run dev
 在手机浏览器输入：
 
 ```
-http://你的服务器IP:3009
+http://你的服务器IP:<端口号>
 ```
+
+> 端口号为 `server/config.json` 中配置的 `port`，默认 `3009`。
 
 1. 首次访问会弹出安全认证弹框
 2. 输入第 2 步中获得的 **Token** 和 **encodingAESKey**
@@ -258,7 +262,7 @@ openclawAPP/
 
 | 字段 | 说明 | 默认值 |
 |------|------|--------|
-| `port` | 服务监听端口 | `3009` |
+| `port` | 服务监听端口，可自定义修改 | `3009` |
 | `corsOrigin` | CORS 允许来源，生产环境建议设为具体域名 | `"*"` |
 | `authChallengeTtlMs` | 认证挑战有效时长（毫秒） | `60000` |
 
@@ -266,7 +270,7 @@ openclawAPP/
 
 ```json
 {
-  "serverUrl": "http://你的服务器IP:3009",
+  "serverUrl": "http://你的服务器IP:<端口号>",
   "token": "服务器生成的 Token",
   "encodingAESKey": "服务器生成的 AES Key",
   "openclawPath": "openclaw",
@@ -316,8 +320,8 @@ cd client && npm run dev          # 终端 3：前端开发服务器
 <details>
 <summary><b>手机无法连接？</b></summary>
 
-1. 确认云服务器防火墙已放行对应端口（默认 3009）
-2. 在手机浏览器输入 `http://服务器IP:3009/health`，应返回 `{"status":"ok"}`
+1. 确认云服务器防火墙已放行对应端口（`server/config.json` 中配置的 `port`，默认 3009）
+2. 在手机浏览器输入 `http://服务器IP:<端口>/health`，应返回 `{"status":"ok"}`
 3. 确认插件已连接（health 接口返回 `pluginConnected: true`）
 </details>
 
@@ -332,10 +336,10 @@ cd client && npm run dev          # 终端 3：前端开发服务器
 
 ```bash
 # 健康检查
-curl http://服务器IP:3009/health
+curl http://服务器IP:<端口>/health
 
 # 查看凭证指纹（不暴露明文）
-curl http://服务器IP:3009/security/bootstrap
+curl http://服务器IP:<端口>/security/bootstrap
 
 # PM2 查看日志
 pm2 logs openclaw-server --lines 30
